@@ -1,5 +1,6 @@
 var pool = require('../../dbConfig');
 const bcrypt = require('bcrypt');
+const e = require('express');
 
 var emailRegex = /^[-!#$%&'*+\/0-9=?A-Z^_a-z{|}~](\.?[-!#$%&'*+\/0-9=?A-Z^_a-z`{|}~])*@[a-zA-Z0-9](-*\.?[a-zA-Z0-9])*\.[a-zA-Z](-?[a-zA-Z0-9])+$/;
 function isEmailValid(email) {
@@ -24,6 +25,26 @@ function isEmailValid(email) {
 
     return true;
 }
+function checkdepartment(department){
+    if(!department)
+        return false;
+    else if(department == 'CSE' || department == 'CCE' || department == 'MME' || department == 'ECE' || department == 'Non Academic')
+        return true;
+    return false;
+}
+function checkrole(role){
+    if(!role)
+        return false;
+    else if(role == 'teachingstaff' || role == 'hod' || role == 'dofa' || role == 'director' || role == 'hos' || role == 'non_teachingstaff' || role == 'registrar')
+        return true;
+    return false;
+}
+function isUserNameValid(username) {
+
+    const res = /^[A-Z\sa-z0-9_\.]+$/.exec(username);
+    const valid = !!res;
+    return valid;
+}
 
 module.exports = function(app, express){
 
@@ -35,13 +56,21 @@ module.exports = function(app, express){
         let validationErrors = [];
         var emailID = req.body.emailID;
         var password = req.body.password;
-        
+        var username = req.body.username;
+        var role = req.body.role;
+        var department = req.body.department;
+
         if(!isEmailValid(emailID) || !req.body.emailID)
             validationErrors.push("Enter valid Email ID");
-        
         if(!req.body.password)
             validationErrors.push("Enter valid password");
-        
+        if(!isUserNameValid(username))
+            validationErrors.push("Invaild Username");
+        if(!checkdepartment(department))
+            validationErrors.push("Invalid Department");
+        if(!checkrole(role))
+            validationErrors.push("Invaild Role");
+
         if(validationErrors.length > 0)
                 res.status(406).send(validationErrors);
         else{
@@ -61,7 +90,22 @@ module.exports = function(app, express){
                             if(err2)
                                 res.send(err2);
                             else{
-                                res.status(200).send({msg : "User registered successfully!"});
+                                var query3 = `INSERT INTO userdetails (emailid, username, role, department) VALUES ('${emailID}', '${username}', '${role}', '${department}')`;
+                                pool.query(query3, (err3, res3) => {
+                                    if(err3)
+                                        throw err3;
+                                    else{
+                                        var query4 = `INSERT INTO leavesCount (emailid) VALUES ('${emailID}')`;
+                                        pool.query(query4, (err4, res4) =>{
+                                            if(err4)
+                                                throw err4;
+                                            else{
+                                                res.status(200).send({msg : "User registered successfully!"});
+                                            }
+                                        })
+                                     
+                                    }
+                                });
                             }
                         });
                     }
@@ -72,5 +116,3 @@ module.exports = function(app, express){
 
     return registrationRouter;
 }
-//$2b$10$zUDA2ZDupQWO0CrOInJz0uIvTHbhBOqj/0m.2vABocPtSXmXg9Nr6
-//$2b$10$QHJ6MisIBJA80FuZOZ.RNOhyRDd3lz8IjLMKRmlZYiizRppAOKzuu

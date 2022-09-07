@@ -1,6 +1,6 @@
 var pool = require('../../dbConfig');
 const bcrypt = require('bcrypt');
-const { query } = require('express');
+const jwt = require('jsonwebtoken');
 
 module.exports = function(app, express){
 
@@ -31,23 +31,37 @@ module.exports = function(app, express){
                     }
                     else{
                         hashedpassword = res1.rows[0].password;
-                        //console.log(hashedpassword);
                         var check = bcrypt.compareSync(password, hashedpassword);
                         if(check == false){
                             validationErrors.push("Incorrect password");
                             res.status(406).send(validationErrors);
                         }
                         else{
-                            res.status(200).send({msg : "Login successfully"});
+                            var query2 = `SELECT * FROM userdetails WHERE (emailid = '${emailID}')`;
+                            pool.query(query2, (err2, res2) =>{
+                                if(err2)
+                                    throw err2;
+                                else{   
+                                    const user = {
+                                        user : emailID,
+                                        username : res2.rows[0].username,
+                                        role : res2.rows[0].role,
+                                        department : res2.rows[0].department
+                                    }
+                                    jwt.sign({user}, 'secretKeyLMS', (err, token) => {
+                                            res.status(200).send({msg : "Login Successfully",
+                                            token : token
+                                        });
+                                    });
+                                }
+                            }) 
+                            //res.status(200).send({msg : "Login successfully"});
                         }
                     }
                 }
             })
         }
-
-
     });
-
     return loginRouter;
 
 }

@@ -3,8 +3,8 @@ var app         = express();
 var bodyParser  = require('body-parser');
 var path        = require('path');
 var config      = require('./config');
-const exp = require('constants');
-
+const exp       = require('constants');
+var jwt         = require('jsonwebtoken');
 
 
 app.use(bodyParser.urlencoded({extended : true}));
@@ -27,6 +27,12 @@ app.use('/auth', register);
 
 var login = require('./app/routes/login')(app, express);
 app.use('/login', login);
+
+var leavesCount = require('./app/routes/leavesCount')(app, express);
+app.use('/leaves', leavesCount);
+
+var application = require('./app/routes/application')(app, express);
+app.use('/app', application);
 
 app.listen(config.port);
 console.log('Listening on port ' + config.port);
